@@ -657,6 +657,83 @@ class Unreachable(Expr):
 
 # Since we target HLIR, we didn't implemented class for *_SSA and *_PHI instructions.
 
+unary_op_map = {
+    HighLevelILOperation.HLIL_DEREF: Deref,
+    HighLevelILOperation.HLIL_ADDRESS_OF: AddressOf,
+    HighLevelILOperation.HLIL_NEG: Neg,
+    HighLevelILOperation.HLIL_NOT: Not,
+    HighLevelILOperation.HLIL_SX: Sx,
+    HighLevelILOperation.HLIL_ZX: Zx,
+    HighLevelILOperation.HLIL_LOW_PART: LowPart,
+    HighLevelILOperation.HLIL_BOOL_TO_INT: BoolToInt,
+    HighLevelILOperation.HLIL_UNIMPL_MEM: UnimplMem,
+    HighLevelILOperation.HLIL_FSQRT: Fsqrt,
+    HighLevelILOperation.HLIL_FNEG: Fneg,
+    HighLevelILOperation.HLIL_FABS: Fabs,
+    HighLevelILOperation.HLIL_FLOAT_TO_INT: FloatToInt,
+    HighLevelILOperation.HLIL_INT_TO_FLOAT: IntToFloat,
+    HighLevelILOperation.HLIL_FLOAT_CONV: FloatConv,
+    HighLevelILOperation.HLIL_ROUND_TO_INT: RoundToInt,
+    HighLevelILOperation.HLIL_FLOOR: Floor,
+    HighLevelILOperation.HLIL_CEIL: Ceil,
+    HighLevelILOperation.HLIL_FTRUNC: Ftrunc,
+}
+
+binary_op_map = {
+    HighLevelILOperation.HLIL_ADD: Add,
+    HighLevelILOperation.HLIL_SUB: Sub,
+    HighLevelILOperation.HLIL_AND: And,
+    HighLevelILOperation.HLIL_OR: Or,
+    HighLevelILOperation.HLIL_XOR: Xor,
+    HighLevelILOperation.HLIL_LSL: Lsl,
+    HighLevelILOperation.HLIL_LSR: Lsr,
+    HighLevelILOperation.HLIL_ASR: Asr,
+    HighLevelILOperation.HLIL_ROL: Rol,
+    HighLevelILOperation.HLIL_ROR: Ror,
+    HighLevelILOperation.HLIL_MUL: Mul,
+    HighLevelILOperation.HLIL_MULU_DP: MuluDp,
+    HighLevelILOperation.HLIL_MULS_DP: MulsDp,
+    HighLevelILOperation.HLIL_DIVU: Divu,
+    HighLevelILOperation.HLIL_DIVU_DP: DivuDp,
+    HighLevelILOperation.HLIL_DIVS: Divs,
+    HighLevelILOperation.HLIL_DIVS_DP: DivsDp,
+    HighLevelILOperation.HLIL_MODU: Modu,
+    HighLevelILOperation.HLIL_MODU_DP: ModuDp,
+    HighLevelILOperation.HLIL_MODS: Mods,
+    HighLevelILOperation.HLIL_MODS_DP: ModsDp,
+    HighLevelILOperation.HLIL_CMP_E: CmpE,
+    HighLevelILOperation.HLIL_CMP_NE: CmpNe,
+    HighLevelILOperation.HLIL_CMP_SLT: CmpSlt,
+    HighLevelILOperation.HLIL_CMP_ULT: CmpUlt,
+    HighLevelILOperation.HLIL_CMP_SLE: CmpSle,
+    HighLevelILOperation.HLIL_CMP_ULE: CmpUle,
+    HighLevelILOperation.HLIL_CMP_SGE: CmpSge,
+    HighLevelILOperation.HLIL_CMP_UGE: CmpUge,
+    HighLevelILOperation.HLIL_CMP_SGT: CmpSgt,
+    HighLevelILOperation.HLIL_CMP_UGT: CmpUgt,
+    HighLevelILOperation.HLIL_TEST_BIT: TestBit,
+    HighLevelILOperation.HLIL_ADD_OVERFLOW: AddOverflow,
+    HighLevelILOperation.HLIL_FADD: Fadd,
+    HighLevelILOperation.HLIL_FSUB: Fsub,
+    HighLevelILOperation.HLIL_FMUL: Fmul,
+    HighLevelILOperation.HLIL_FDIV: Fdiv,
+    HighLevelILOperation.HLIL_FCMP_E: FcmpE,
+    HighLevelILOperation.HLIL_FCMP_NE: FcmpNe,
+    HighLevelILOperation.HLIL_FCMP_LT: FcmpLt,
+    HighLevelILOperation.HLIL_FCMP_LE: FcmpLe,
+    HighLevelILOperation.HLIL_FCMP_GE: FcmpGe,
+    HighLevelILOperation.HLIL_FCMP_GT: FcmpGt,
+    HighLevelILOperation.HLIL_FCMP_O: FcmpO,
+    HighLevelILOperation.HLIL_FCMP_UO: FcmpUo,
+}
+
+binary_with_carry_op_map = {
+    HighLevelILOperation.HLIL_ADC: Adc,
+    HighLevelILOperation.HLIL_SBB: Sbb,
+    HighLevelILOperation.HLIL_RLC: Rlc,
+    HighLevelILOperation.HLIL_RRC: Rrc,
+}
+
 
 def parse_list(expr_list: list[binaryninja.HighLevelILInstruction]) -> list[Expr]:
     return [parse_ast(e) for e in expr_list]
@@ -674,6 +751,15 @@ def parse_ast(expr: binaryninja.HighLevelILInstruction) -> Expr:
     parse_binary_with_carry_helper = partial(parse_binary_with_carry, expr, args)
 
     match op:
+        case _ if op in unary_op_map:
+            class_type = unary_op_map[op]
+            return parse_unary_helper(class_type)
+        case _ if op in binary_op_map:
+            class_type = binary_op_map[op]
+            return parse_binary_helper(class_type)
+        case _ if op in binary_with_carry_op_map:
+            class_type = binary_with_carry_op_map[op]
+            return parse_binary_with_carry_helper(class_type)
         case HighLevelILOperation.HLIL_NOP:
             return Nop(*args)
         case HighLevelILOperation.HLIL_BLOCK:
@@ -756,15 +842,11 @@ def parse_ast(expr: binaryninja.HighLevelILInstruction) -> Expr:
             high = parse_ast(expr.high)
             low = parse_ast(expr.low)
             return Split(*args, high, low)
-        case HighLevelILOperation.HLIL_DEREF:
-            return parse_unary_helper(Deref)
         case HighLevelILOperation.HLIL_DEREF_FIELD:
             src = parse_ast(expr.src)
             offset = expr.offset
             member_index = expr.member_index
             return DerefField(*args, src, offset, member_index)
-        case HighLevelILOperation.HLIL_ADDRESS_OF:
-            return parse_unary_helper(AddressOf)
         case HighLevelILOperation.HLIL_CONST:
             constant = expr.constant
             return Const(*args, constant)
@@ -784,96 +866,10 @@ def parse_ast(expr: binaryninja.HighLevelILInstruction) -> Expr:
         case HighLevelILOperation.HLIL_IMPORT:
             constant = expr.constant
             return Import(*args, constant)
-        case HighLevelILOperation.HLIL_ADD:
-            return parse_binary_helper(Add)
-        case HighLevelILOperation.HLIL_ADC:
-            return parse_binary_with_carry_helper(Adc)
-        case HighLevelILOperation.HLIL_SUB:
-            return parse_binary_helper(Sub)
-        case HighLevelILOperation.HLIL_SBB:
-            return parse_binary_with_carry_helper(Sbb)
-        case HighLevelILOperation.HLIL_AND:
-            return parse_binary_helper(And)
-        case HighLevelILOperation.HLIL_OR:
-            return parse_binary_helper(Or)
-        case HighLevelILOperation.HLIL_XOR:
-            return parse_binary_helper(Xor)
-        case HighLevelILOperation.HLIL_LSL:
-            return parse_binary_helper(Lsl)
-        case HighLevelILOperation.HLIL_LSR:
-            return parse_binary_helper(Lsr)
-        case HighLevelILOperation.HLIL_ASR:
-            return parse_binary_helper(Asr)
-        case HighLevelILOperation.HLIL_ROL:
-            return parse_binary_helper(Rol)
-        case HighLevelILOperation.HLIL_RLC:
-            return parse_binary_with_carry_helper(Rlc)
-        case HighLevelILOperation.HLIL_ROR:
-            return parse_binary_helper(Ror)
-        case HighLevelILOperation.HLIL_RRC:
-            return parse_binary_with_carry_helper(Rrc)
-        case HighLevelILOperation.HLIL_MUL:
-            return parse_binary_helper(Mul)
-        case HighLevelILOperation.HLIL_MULU_DP:
-            return parse_binary_helper(MuluDp)
-        case HighLevelILOperation.HLIL_MULS_DP:
-            return parse_binary_helper(MulsDp)
-        case HighLevelILOperation.HLIL_DIVU:
-            return parse_binary_helper(Divu)
-        case HighLevelILOperation.HLIL_DIVU_DP:
-            return parse_binary_helper(DivuDp)
-        case HighLevelILOperation.HLIL_DIVS:
-            return parse_binary_helper(Divs)
-        case HighLevelILOperation.HLIL_DIVS_DP:
-            return parse_binary_helper(DivsDp)
-        case HighLevelILOperation.HLIL_MODU:
-            return parse_binary_helper(Modu)
-        case HighLevelILOperation.HLIL_MODU_DP:
-            return parse_binary_helper(ModuDp)
-        case HighLevelILOperation.HLIL_MODS:
-            return parse_binary_helper(Mods)
-        case HighLevelILOperation.HLIL_MODS_DP:
-            return parse_binary_helper(ModsDp)
-        case HighLevelILOperation.HLIL_NEG:
-            return parse_unary_helper(Neg)
-        case HighLevelILOperation.HLIL_NOT:
-            return parse_unary_helper(Not)
-        case HighLevelILOperation.HLIL_SX:
-            return parse_unary_helper(Sx)
-        case HighLevelILOperation.HLIL_ZX:
-            return parse_unary_helper(Zx)
-        case HighLevelILOperation.HLIL_LOW_PART:
-            return parse_unary_helper(LowPart)
         case HighLevelILOperation.HLIL_CALL:
             dest = parse_ast(expr.dest)
             params = parse_list(expr.params)
             return Call(*args, dest, params)
-        case HighLevelILOperation.HLIL_CMP_E:
-            return parse_binary_helper(CmpE)
-        case HighLevelILOperation.HLIL_CMP_NE:
-            return parse_binary_helper(CmpNe)
-        case HighLevelILOperation.HLIL_CMP_SLT:
-            return parse_binary_helper(CmpSlt)
-        case HighLevelILOperation.HLIL_CMP_ULT:
-            return parse_binary_helper(CmpUlt)
-        case HighLevelILOperation.HLIL_CMP_SLE:
-            return parse_binary_helper(CmpSle)
-        case HighLevelILOperation.HLIL_CMP_ULE:
-            return parse_binary_helper(CmpUle)
-        case HighLevelILOperation.HLIL_CMP_SGE:
-            return parse_binary_helper(CmpSge)
-        case HighLevelILOperation.HLIL_CMP_UGE:
-            return parse_binary_helper(CmpUge)
-        case HighLevelILOperation.HLIL_CMP_SGT:
-            return parse_binary_helper(CmpSgt)
-        case HighLevelILOperation.HLIL_CMP_UGT:
-            return parse_binary_helper(CmpUgt)
-        case HighLevelILOperation.HLIL_TEST_BIT:
-            return parse_binary_helper(TestBit)
-        case HighLevelILOperation.HLIL_BOOL_TO_INT:
-            return parse_unary_helper(BoolToInt)
-        case HighLevelILOperation.HLIL_ADD_OVERFLOW:
-            return parse_binary_helper(AddOverflow)
         case HighLevelILOperation.HLIL_SYSCALL:
             params = parse_list(expr.params)
             return Syscall(*args, params)
@@ -894,52 +890,6 @@ def parse_ast(expr: binaryninja.HighLevelILInstruction) -> Expr:
             return Undef(*args)
         case HighLevelILOperation.HLIL_UNIMPL:
             return Unimpl(*args)
-        case HighLevelILOperation.HLIL_UNIMPL_MEM:
-            return parse_unary_helper(UnimplMem)
-        case HighLevelILOperation.HLIL_FADD:
-            return parse_binary_helper(Fadd)
-        case HighLevelILOperation.HLIL_FSUB:
-            return parse_binary_helper(Fsub)
-        case HighLevelILOperation.HLIL_FMUL:
-            return parse_binary_helper(Fmul)
-        case HighLevelILOperation.HLIL_FDIV:
-            return parse_binary_helper(Fdiv)
-        case HighLevelILOperation.HLIL_FSQRT:
-            return parse_unary_helper(Fsqrt)
-        case HighLevelILOperation.HLIL_FNEG:
-            return parse_unary_helper(Fneg)
-        case HighLevelILOperation.HLIL_FABS:
-            return parse_unary_helper(Fabs)
-        case HighLevelILOperation.HLIL_FLOAT_TO_INT:
-            return parse_unary_helper(FloatToInt)
-        case HighLevelILOperation.HLIL_INT_TO_FLOAT:
-            return parse_unary_helper(IntToFloat)
-        case HighLevelILOperation.HLIL_FLOAT_CONV:
-            return parse_unary_helper(FloatConv)
-        case HighLevelILOperation.HLIL_ROUND_TO_INT:
-            return parse_unary_helper(RoundToInt)
-        case HighLevelILOperation.HLIL_FLOOR:
-            return parse_unary_helper(Floor)
-        case HighLevelILOperation.HLIL_CEIL:
-            return parse_unary_helper(Ceil)
-        case HighLevelILOperation.HLIL_FTRUNC:
-            return parse_unary_helper(Ftrunc)
-        case HighLevelILOperation.HLIL_FCMP_E:
-            return parse_binary_helper(FcmpE)
-        case HighLevelILOperation.HLIL_FCMP_NE:
-            return parse_binary_helper(FcmpNe)
-        case HighLevelILOperation.HLIL_FCMP_LT:
-            return parse_binary_helper(FcmpLt)
-        case HighLevelILOperation.HLIL_FCMP_LE:
-            return parse_binary_helper(FcmpLe)
-        case HighLevelILOperation.HLIL_FCMP_GE:
-            return parse_binary_helper(FcmpGe)
-        case HighLevelILOperation.HLIL_FCMP_GT:
-            return parse_binary_helper(FcmpGt)
-        case HighLevelILOperation.HLIL_FCMP_O:
-            return parse_binary_helper(FcmpO)
-        case HighLevelILOperation.HLIL_FCMP_UO:
-            return parse_binary_helper(FcmpUo)
         case HighLevelILOperation.HLIL_UNREACHABLE:
             return Unreachable(*args)
 
