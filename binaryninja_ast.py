@@ -1,7 +1,7 @@
 import binaryninja
 
 from binaryninja import HighLevelILOperation
-from dataclasses import dataclass, InitVar
+from dataclasses import dataclass, fields
 from functools import partial
 
 from .constants import *
@@ -893,3 +893,29 @@ def parse_ast(expr: binaryninja.HighLevelILInstruction) -> Expr:
             return Unreachable(*args)
 
     raise Exception(f"Patter matching does not exaustive. ({str(op)})")
+
+
+def fold(f, init, expr):
+    def helper(acc, elem):
+        if isinstance(elem, Expr):
+            return fold(f, acc, elem)
+        return acc
+
+    acc = f(init, expr)
+    for field in fields(expr):
+        value = getattr(expr, field.name)
+        if isinstance(value, list):
+            for elem in value:
+                acc = helper(acc, elem)
+        else:
+            acc = helper(acc, value)
+
+    return acc
+
+
+def iter(f, expr):
+    def helper(_, expr):
+        f(expr)
+        return None
+
+    fold(helper, None, expr)
