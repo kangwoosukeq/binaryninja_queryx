@@ -1,1 +1,2 @@
+ARCHITECTURE = "architecture"
 FUNCTIONS = "functions"

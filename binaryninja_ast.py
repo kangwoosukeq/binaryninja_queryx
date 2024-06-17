@@ -92,13 +92,12 @@ class Noret(Expr):
 
 @dataclass
 class GotoLabel:
-    id: int
     label_id: int
     name: str
 
 
 def parse_goto_label(label: binaryninja.GotoLabel) -> GotoLabel:
-    return GotoLabel(label.id, label.label_id, label.name)
+    return GotoLabel(label.label_id, label.name)
 
 
 @dataclass
@@ -134,12 +133,12 @@ def parse_variable(var: binaryninja.Variable) -> Variable:
 
 @dataclass
 class VarDeclare(Expr):
-    var: Variable
+    var: int
 
 
 @dataclass
 class VarInit(Expr):
-    dest: Variable
+    dest: int
     src: Expr
 
 
@@ -157,7 +156,7 @@ class AssignUnpack(Expr):
 
 @dataclass
 class Var(Expr):
-    var: Variable
+    var: int
 
 
 @dataclass
@@ -812,10 +811,10 @@ def parse_ast(expr: binaryninja.HighLevelILInstruction) -> Expr:
             target = parse_goto_label(expr.target)
             return Label(*args, target)
         case HighLevelILOperation.HLIL_VAR_DECLARE:
-            var = parse_variable(expr.var)
+            var = expr.var.identifier
             return VarDeclare(*args, var)
         case HighLevelILOperation.HLIL_VAR_INIT:
-            dest = parse_variable(expr.dest)
+            dest = expr.dest.identifier
             src = parse_ast(expr.src)
             return VarInit(*args, dest, src)
         case HighLevelILOperation.HLIL_ASSIGN:
@@ -827,7 +826,7 @@ def parse_ast(expr: binaryninja.HighLevelILInstruction) -> Expr:
             src = parse_ast(expr.src)
             return AssignUnpack(*args, dest, src)
         case HighLevelILOperation.HLIL_VAR:
-            var = parse_variable(expr.var)
+            var = expr.var.identifier
             return Var(*args, var)
         case HighLevelILOperation.HLIL_STRUCT_FIELD:
             src = parse_ast(expr.src)
