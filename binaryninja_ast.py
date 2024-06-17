@@ -2,7 +2,6 @@ import binaryninja
 
 from binaryninja import HighLevelILOperation
 from dataclasses import dataclass, fields
-from functools import partial
 
 from .constants import *
 
@@ -13,11 +12,6 @@ class Expr:
     address: int
     instr_index: binaryninja.InstructionIndex
     expr_index: binaryninja.ExpressionIndex
-
-
-@dataclass
-class Nop(Expr):
-    pass
 
 
 @dataclass
@@ -66,16 +60,6 @@ class Case(Expr):
 
 
 @dataclass
-class Break(Expr):
-    pass
-
-
-@dataclass
-class Continue(Expr):
-    pass
-
-
-@dataclass
 class Jump(Expr):
     dest: Expr
 
@@ -83,11 +67,6 @@ class Jump(Expr):
 @dataclass
 class Ret(Expr):
     src: list[Expr]
-
-
-@dataclass
-class Noret(Expr):
-    pass
 
 
 @dataclass
@@ -183,16 +162,9 @@ class Unary(Expr):
     src: Expr
 
 
-def parse_unary(
-    expr: binaryninja.HighLevelILInstruction, args, class_type: type[Unary]
-) -> Unary:
+def parse_unary(expr: binaryninja.HighLevelILInstruction, args) -> Unary:
     src = parse_ast(expr.src)
-    return class_type(*args, src)
-
-
-@dataclass
-class Deref(Unary):
-    pass
+    return Unary(*args, src)
 
 
 @dataclass
@@ -200,11 +172,6 @@ class DerefField(Expr):
     src: Expr
     offset: int
     member_index: int | None
-
-
-@dataclass
-class AddressOf(Unary):
-    pass
 
 
 @dataclass
@@ -244,17 +211,10 @@ class Binary(Expr):
     right: Expr
 
 
-def parse_binary(
-    expr: binaryninja.HighLevelILInstruction, args, class_type: type[Binary]
-) -> Binary:
+def parse_binary(expr: binaryninja.HighLevelILInstruction, args) -> Binary:
     left = parse_ast(expr.left)
     right = parse_ast(expr.right)
-    return class_type(*args, left, right)
-
-
-@dataclass
-class Add(Binary):
-    pass
+    return Binary(*args, left, right)
 
 
 @dataclass
@@ -263,228 +223,18 @@ class BinaryWithCarry(Binary):
 
 
 def parse_binary_with_carry(
-    expr: binaryninja.HighLevelILInstruction, args, class_type: type[BinaryWithCarry]
+    expr: binaryninja.HighLevelILInstruction, args
 ) -> BinaryWithCarry:
     left = parse_ast(expr.left)
     right = parse_ast(expr.right)
     carry = parse_ast(expr.carry)
-    return class_type(*args, left, right, carry)
-
-
-@dataclass
-class Adc(BinaryWithCarry):
-    pass
-
-
-@dataclass
-class Sub(Binary):
-    pass
-
-
-@dataclass
-class Sbb(BinaryWithCarry):
-    pass
-
-
-@dataclass
-class And(Binary):
-    pass
-
-
-@dataclass
-class Or(Binary):
-    pass
-
-
-@dataclass
-class Xor(Binary):
-    pass
-
-
-@dataclass
-class Lsl(Binary):
-    pass
-
-
-@dataclass
-class Lsr(Binary):
-    pass
-
-
-@dataclass
-class Asr(Binary):
-    pass
-
-
-@dataclass
-class Rol(Binary):
-    pass
-
-
-@dataclass
-class Rlc(BinaryWithCarry):
-    pass
-
-
-@dataclass
-class Ror(Binary):
-    pass
-
-
-@dataclass
-class Rrc(BinaryWithCarry):
-    pass
-
-
-@dataclass
-class Mul(Binary):
-    pass
-
-
-@dataclass
-class MuluDp(Binary):
-    pass
-
-
-@dataclass
-class MulsDp(Binary):
-    pass
-
-
-@dataclass
-class Divu(Binary):
-    pass
-
-
-@dataclass
-class DivuDp(Binary):
-    pass
-
-
-@dataclass
-class Divs(Binary):
-    pass
-
-
-@dataclass
-class DivsDp(Binary):
-    pass
-
-
-@dataclass
-class Modu(Binary):
-    pass
-
-
-@dataclass
-class ModuDp(Binary):
-    pass
-
-
-@dataclass
-class Mods(Binary):
-    pass
-
-
-@dataclass
-class ModsDp(Binary):
-    pass
-
-
-@dataclass
-class Neg(Unary):
-    pass
-
-
-@dataclass
-class Not(Unary):
-    pass
-
-
-@dataclass
-class Sx(Unary):
-    pass
-
-
-@dataclass
-class Zx(Unary):
-    pass
-
-
-@dataclass
-class LowPart(Unary):
-    pass
+    return BinaryWithCarry(*args, left, right, carry)
 
 
 @dataclass
 class Call(Expr):
     dest: Expr
     params: list[Expr]
-
-
-@dataclass
-class CmpE(Binary):
-    pass
-
-
-@dataclass
-class CmpNe(Binary):
-    pass
-
-
-@dataclass
-class CmpSlt(Binary):
-    pass
-
-
-@dataclass
-class CmpUlt(Binary):
-    pass
-
-
-@dataclass
-class CmpSle(Binary):
-    pass
-
-
-@dataclass
-class CmpUle(Binary):
-    pass
-
-
-@dataclass
-class CmpSge(Binary):
-    pass
-
-
-@dataclass
-class CmpUge(Binary):
-    pass
-
-
-@dataclass
-class CmpSgt(Binary):
-    pass
-
-
-@dataclass
-class CmpUgt(Binary):
-    pass
-
-
-@dataclass
-class TestBit(Binary):
-    pass
-
-
-@dataclass
-class BoolToInt(Unary):
-    pass
-
-
-@dataclass
-class AddOverflow(Binary):
-    pass
 
 
 @dataclass
@@ -515,223 +265,94 @@ class Intrinsic(Expr):
 
 
 @dataclass
-class Bp(Expr):
-    pass
-
-
-@dataclass
 class Trap(Expr):
     vector: int
 
 
-@dataclass
-class Undef(Expr):
-    pass
-
-
-@dataclass
-class Unimpl(Expr):
-    pass
-
-
-@dataclass
-class UnimplMem(Unary):
-    pass
-
-
-@dataclass
-class Fadd(Binary):
-    pass
-
-
-@dataclass
-class Fsub(Binary):
-    pass
-
-
-@dataclass
-class Fmul(Binary):
-    pass
-
-
-@dataclass
-class Fdiv(Binary):
-    pass
-
-
-@dataclass
-class Fsqrt(Unary):
-    pass
-
-
-@dataclass
-class Fneg(Unary):
-    pass
-
-
-@dataclass
-class Fabs(Unary):
-    pass
-
-
-@dataclass
-class FloatToInt(Unary):
-    pass
-
-
-@dataclass
-class IntToFloat(Unary):
-    pass
-
-
-@dataclass
-class FloatConv(Unary):
-    pass
-
-
-@dataclass
-class RoundToInt(Unary):
-    pass
-
-
-@dataclass
-class Floor(Unary):
-    pass
-
-
-@dataclass
-class Ceil(Unary):
-    pass
-
-
-@dataclass
-class Ftrunc(Unary):
-    pass
-
-
-@dataclass
-class FcmpE(Binary):
-    pass
-
-
-@dataclass
-class FcmpNe(Binary):
-    pass
-
-
-@dataclass
-class FcmpLt(Binary):
-    pass
-
-
-@dataclass
-class FcmpLe(Binary):
-    pass
-
-
-@dataclass
-class FcmpGe(Binary):
-    pass
-
-
-@dataclass
-class FcmpGt(Binary):
-    pass
-
-
-@dataclass
-class FcmpO(Binary):
-    pass
-
-
-@dataclass
-class FcmpUo(Binary):
-    pass
-
-
-@dataclass
-class Unreachable(Expr):
-    pass
-
-
 # Since we target HLIR, we didn't implemented class for *_SSA and *_PHI instructions.
 
-unary_op_map = {
-    HighLevelILOperation.HLIL_DEREF: Deref,
-    HighLevelILOperation.HLIL_ADDRESS_OF: AddressOf,
-    HighLevelILOperation.HLIL_NEG: Neg,
-    HighLevelILOperation.HLIL_NOT: Not,
-    HighLevelILOperation.HLIL_SX: Sx,
-    HighLevelILOperation.HLIL_ZX: Zx,
-    HighLevelILOperation.HLIL_LOW_PART: LowPart,
-    HighLevelILOperation.HLIL_BOOL_TO_INT: BoolToInt,
-    HighLevelILOperation.HLIL_UNIMPL_MEM: UnimplMem,
-    HighLevelILOperation.HLIL_FSQRT: Fsqrt,
-    HighLevelILOperation.HLIL_FNEG: Fneg,
-    HighLevelILOperation.HLIL_FABS: Fabs,
-    HighLevelILOperation.HLIL_FLOAT_TO_INT: FloatToInt,
-    HighLevelILOperation.HLIL_INT_TO_FLOAT: IntToFloat,
-    HighLevelILOperation.HLIL_FLOAT_CONV: FloatConv,
-    HighLevelILOperation.HLIL_ROUND_TO_INT: RoundToInt,
-    HighLevelILOperation.HLIL_FLOOR: Floor,
-    HighLevelILOperation.HLIL_CEIL: Ceil,
-    HighLevelILOperation.HLIL_FTRUNC: Ftrunc,
-}
+unary_op_set = set(
+    [
+        HighLevelILOperation.HLIL_DEREF,
+        HighLevelILOperation.HLIL_ADDRESS_OF,
+        HighLevelILOperation.HLIL_NEG,
+        HighLevelILOperation.HLIL_NOT,
+        HighLevelILOperation.HLIL_SX,
+        HighLevelILOperation.HLIL_ZX,
+        HighLevelILOperation.HLIL_LOW_PART,
+        HighLevelILOperation.HLIL_BOOL_TO_INT,
+        HighLevelILOperation.HLIL_UNIMPL_MEM,
+        HighLevelILOperation.HLIL_FSQRT,
+        HighLevelILOperation.HLIL_FNEG,
+        HighLevelILOperation.HLIL_FABS,
+        HighLevelILOperation.HLIL_FLOAT_TO_INT,
+        HighLevelILOperation.HLIL_INT_TO_FLOAT,
+        HighLevelILOperation.HLIL_FLOAT_CONV,
+        HighLevelILOperation.HLIL_ROUND_TO_INT,
+        HighLevelILOperation.HLIL_FLOOR,
+        HighLevelILOperation.HLIL_CEIL,
+        HighLevelILOperation.HLIL_FTRUNC,
+    ]
+)
 
-binary_op_map = {
-    HighLevelILOperation.HLIL_ADD: Add,
-    HighLevelILOperation.HLIL_SUB: Sub,
-    HighLevelILOperation.HLIL_AND: And,
-    HighLevelILOperation.HLIL_OR: Or,
-    HighLevelILOperation.HLIL_XOR: Xor,
-    HighLevelILOperation.HLIL_LSL: Lsl,
-    HighLevelILOperation.HLIL_LSR: Lsr,
-    HighLevelILOperation.HLIL_ASR: Asr,
-    HighLevelILOperation.HLIL_ROL: Rol,
-    HighLevelILOperation.HLIL_ROR: Ror,
-    HighLevelILOperation.HLIL_MUL: Mul,
-    HighLevelILOperation.HLIL_MULU_DP: MuluDp,
-    HighLevelILOperation.HLIL_MULS_DP: MulsDp,
-    HighLevelILOperation.HLIL_DIVU: Divu,
-    HighLevelILOperation.HLIL_DIVU_DP: DivuDp,
-    HighLevelILOperation.HLIL_DIVS: Divs,
-    HighLevelILOperation.HLIL_DIVS_DP: DivsDp,
-    HighLevelILOperation.HLIL_MODU: Modu,
-    HighLevelILOperation.HLIL_MODU_DP: ModuDp,
-    HighLevelILOperation.HLIL_MODS: Mods,
-    HighLevelILOperation.HLIL_MODS_DP: ModsDp,
-    HighLevelILOperation.HLIL_CMP_E: CmpE,
-    HighLevelILOperation.HLIL_CMP_NE: CmpNe,
-    HighLevelILOperation.HLIL_CMP_SLT: CmpSlt,
-    HighLevelILOperation.HLIL_CMP_ULT: CmpUlt,
-    HighLevelILOperation.HLIL_CMP_SLE: CmpSle,
-    HighLevelILOperation.HLIL_CMP_ULE: CmpUle,
-    HighLevelILOperation.HLIL_CMP_SGE: CmpSge,
-    HighLevelILOperation.HLIL_CMP_UGE: CmpUge,
-    HighLevelILOperation.HLIL_CMP_SGT: CmpSgt,
-    HighLevelILOperation.HLIL_CMP_UGT: CmpUgt,
-    HighLevelILOperation.HLIL_TEST_BIT: TestBit,
-    HighLevelILOperation.HLIL_ADD_OVERFLOW: AddOverflow,
-    HighLevelILOperation.HLIL_FADD: Fadd,
-    HighLevelILOperation.HLIL_FSUB: Fsub,
-    HighLevelILOperation.HLIL_FMUL: Fmul,
-    HighLevelILOperation.HLIL_FDIV: Fdiv,
-    HighLevelILOperation.HLIL_FCMP_E: FcmpE,
-    HighLevelILOperation.HLIL_FCMP_NE: FcmpNe,
-    HighLevelILOperation.HLIL_FCMP_LT: FcmpLt,
-    HighLevelILOperation.HLIL_FCMP_LE: FcmpLe,
-    HighLevelILOperation.HLIL_FCMP_GE: FcmpGe,
-    HighLevelILOperation.HLIL_FCMP_GT: FcmpGt,
-    HighLevelILOperation.HLIL_FCMP_O: FcmpO,
-    HighLevelILOperation.HLIL_FCMP_UO: FcmpUo,
-}
+binary_op_set = set(
+    [
+        HighLevelILOperation.HLIL_ADD,
+        HighLevelILOperation.HLIL_SUB,
+        HighLevelILOperation.HLIL_AND,
+        HighLevelILOperation.HLIL_OR,
+        HighLevelILOperation.HLIL_XOR,
+        HighLevelILOperation.HLIL_LSL,
+        HighLevelILOperation.HLIL_LSR,
+        HighLevelILOperation.HLIL_ASR,
+        HighLevelILOperation.HLIL_ROL,
+        HighLevelILOperation.HLIL_ROR,
+        HighLevelILOperation.HLIL_MUL,
+        HighLevelILOperation.HLIL_MULU_DP,
+        HighLevelILOperation.HLIL_MULS_DP,
+        HighLevelILOperation.HLIL_DIVU,
+        HighLevelILOperation.HLIL_DIVU_DP,
+        HighLevelILOperation.HLIL_DIVS,
+        HighLevelILOperation.HLIL_DIVS_DP,
+        HighLevelILOperation.HLIL_MODU,
+        HighLevelILOperation.HLIL_MODU_DP,
+        HighLevelILOperation.HLIL_MODS,
+        HighLevelILOperation.HLIL_MODS_DP,
+        HighLevelILOperation.HLIL_CMP_E,
+        HighLevelILOperation.HLIL_CMP_NE,
+        HighLevelILOperation.HLIL_CMP_SLT,
+        HighLevelILOperation.HLIL_CMP_ULT,
+        HighLevelILOperation.HLIL_CMP_SLE,
+        HighLevelILOperation.HLIL_CMP_ULE,
+        HighLevelILOperation.HLIL_CMP_SGE,
+        HighLevelILOperation.HLIL_CMP_UGE,
+        HighLevelILOperation.HLIL_CMP_SGT,
+        HighLevelILOperation.HLIL_CMP_UGT,
+        HighLevelILOperation.HLIL_TEST_BIT,
+        HighLevelILOperation.HLIL_ADD_OVERFLOW,
+        HighLevelILOperation.HLIL_FADD,
+        HighLevelILOperation.HLIL_FSUB,
+        HighLevelILOperation.HLIL_FMUL,
+        HighLevelILOperation.HLIL_FDIV,
+        HighLevelILOperation.HLIL_FCMP_E,
+        HighLevelILOperation.HLIL_FCMP_NE,
+        HighLevelILOperation.HLIL_FCMP_LT,
+        HighLevelILOperation.HLIL_FCMP_LE,
+        HighLevelILOperation.HLIL_FCMP_GE,
+        HighLevelILOperation.HLIL_FCMP_GT,
+        HighLevelILOperation.HLIL_FCMP_O,
+        HighLevelILOperation.HLIL_FCMP_UO,
+    ]
+)
 
-binary_with_carry_op_map = {
-    HighLevelILOperation.HLIL_ADC: Adc,
-    HighLevelILOperation.HLIL_SBB: Sbb,
-    HighLevelILOperation.HLIL_RLC: Rlc,
-    HighLevelILOperation.HLIL_RRC: Rrc,
-}
+binary_with_carry_op_set = set(
+    [
+        HighLevelILOperation.HLIL_ADC,
+        HighLevelILOperation.HLIL_SBB,
+        HighLevelILOperation.HLIL_RLC,
+        HighLevelILOperation.HLIL_RRC,
+    ]
+)
 
 
 def parse_list(expr_list: list[binaryninja.HighLevelILInstruction]) -> list[Expr]:
@@ -745,22 +366,13 @@ def parse_ast(expr: binaryninja.HighLevelILInstruction) -> Expr:
     expr_index = expr.expr_index
     args = [op, address, instr_index, expr_index]
 
-    parse_unary_helper = partial(parse_unary, expr, args)
-    parse_binary_helper = partial(parse_binary, expr, args)
-    parse_binary_with_carry_helper = partial(parse_binary_with_carry, expr, args)
-
     match op:
-        case _ if op in unary_op_map:
-            class_type = unary_op_map[op]
-            return parse_unary_helper(class_type)
-        case _ if op in binary_op_map:
-            class_type = binary_op_map[op]
-            return parse_binary_helper(class_type)
-        case _ if op in binary_with_carry_op_map:
-            class_type = binary_with_carry_op_map[op]
-            return parse_binary_with_carry_helper(class_type)
-        case HighLevelILOperation.HLIL_NOP:
-            return Nop(*args)
+        case _ if op in unary_op_set:
+            return parse_unary(expr, args)
+        case _ if op in binary_op_set:
+            return parse_binary(expr, args)
+        case _ if op in binary_with_carry_op_set:
+            return parse_binary_with_carry(expr, args)
         case HighLevelILOperation.HLIL_BLOCK:
             body = parse_list(expr.body)
             return Block(*args, body)
@@ -792,18 +404,12 @@ def parse_ast(expr: binaryninja.HighLevelILInstruction) -> Expr:
             values = parse_list(expr.values)
             body = parse_ast(expr.body)
             return Case(*args, values, body)
-        case HighLevelILOperation.HLIL_BREAK:
-            return Break(*args)
-        case HighLevelILOperation.HLIL_CONTINUE:
-            return Continue(*args)
         case HighLevelILOperation.HLIL_JUMP:
             dest = parse_ast(expr.dest)
             return Jump(*args, dest)
         case HighLevelILOperation.HLIL_RET:
             src = parse_list(expr.src)
             return Ret(*args, src)
-        case HighLevelILOperation.HLIL_NORET:
-            return Noret(*args)
         case HighLevelILOperation.HLIL_GOTO:
             target = parse_goto_label(expr.target)
             return Goto(*args, target)
@@ -880,17 +486,20 @@ def parse_ast(expr: binaryninja.HighLevelILInstruction) -> Expr:
             intrinsic = parse_intrinsic(expr.intrinsic)
             params = parse_list(expr.params)
             return Intrinsic(*args, intrinsic, params)
-        case HighLevelILOperation.HLIL_BP:
-            return Bp(*args)
         case HighLevelILOperation.HLIL_TRAP:
             vector = expr.vector
             return Trap(*args, vector)
-        case HighLevelILOperation.HLIL_UNDEF:
-            return Undef(*args)
-        case HighLevelILOperation.HLIL_UNIMPL:
-            return Unimpl(*args)
-        case HighLevelILOperation.HLIL_UNREACHABLE:
-            return Unreachable(*args)
+        case (
+            HighLevelILOperation.HLIL_NOP
+            | HighLevelILOperation.HLIL_BREAK
+            | HighLevelILOperation.HLIL_CONTINUE
+            | HighLevelILOperation.HLIL_NORET
+            | HighLevelILOperation.HLIL_BP
+            | HighLevelILOperation.HLIL_UNDEF
+            | HighLevelILOperation.HLIL_UNIMPL
+            | HighLevelILOperation.HLIL_UNREACHABLE
+        ):
+            return Expr(*args)
 
     raise Exception(f"Patter matching does not exaustive. ({str(op)})")
 
